@@ -28,6 +28,11 @@ pub enum OPTCODE {
         a_register: usize,
         b_register: usize,
     },
+    Subtract {
+        target_register: usize,
+        a_register: usize,
+        b_register: usize,
+    },
     PrintFunction {
         register: usize,
     },
@@ -59,9 +64,58 @@ pub fn compile(path: String) {
     let mut compiler = Compiler::new();
     parse_ast::parse_ast(root, &mut compiler);
 
-    for optcode in compiler.bytecode {
+    for optcode in &compiler.bytecode {
         println!("{:?}", optcode);
     }
+
+    format_xml_file(compiler.bytecode);
+}
+
+fn format_xml_file(bytecode: Vec<OPTCODE>) {
+    let mut macro_lines = "".to_string();
+
+    let mut counter = 0;
+    for optcode in bytecode {
+        macro_lines += &format_macro_line(optcode, counter);
+        macro_lines += "\n";
+        counter += 1;
+    }
+
+    let res = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            <GMA3 DataVersion=\"2.0.0.4\">
+                <Macro Guid=\"A5 21 19 8F 04 14 04 09 1F 47 52 30 D7 E4 C4 7C\">
+                {}
+                </Macro>
+        </GMA3>
+    ",
+        macro_lines
+    );
+    println!("{}", res);
+}
+//<MacroLine Guid="A5 21 19 8F ED 18 04 09 69 4A 63 3E 9D 49 BD 7C" Command="Group 1" />
+fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
+    let command = match optcode {
+        OPTCODE::LoadNumber { value, register } =>
+            format!("SetUserVariable {} {}", "reg_".to_string() + &register.to_string(), value),
+        OPTCODE::LoadString { value, register } =>
+            format!("SetUserVariable {} {}", "reg_".to_string() + &register.to_string(), value),
+        OPTCODE::Add { target_register, a_register, b_register } =>
+            format!(
+                "SetUserVar {} ${}${}",
+                "reg_".to_string() + &target_register.to_string(),
+                "reg_".to_string() + &a_register.to_string(),
+                "reg_".to_string() + &b_register.to_string()
+            ),
+        OPTCODE::Subtract { target_register, a_register, b_register } => format!(
+                "SetUserVar {} -${}${}",
+                "reg_".to_string() + &target_register.to_string(),
+                "reg_".to_string() + &a_register.to_string(),
+                "reg_".to_string() + &b_register.to_string()
+            ),
+        OPTCODE::PrintFunction { register } => todo!(),
+    };
+    format!("<MacroLine Guid=\"{}\" Command=\"{}\" />", lineid, command)
 }
 
 pub fn read_file(path: String) -> String {

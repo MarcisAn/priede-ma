@@ -36,8 +36,10 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
             a_register,
             b_register,
         });
+        compiler.register_counter += 1;
+
     }
-    if title == "plus" {
+    if title == "minus" {
         parse_ast(node.child(0), compiler);
         parse_ast(node.child(1), compiler);
         let a = compiler.stack.pop_back().unwrap();
@@ -53,11 +55,13 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
         };
 
         compiler.stack.push_back(crate::StackValue::NUM { register: compiler.register_counter });
-        compiler.bytecode.push(crate::OPTCODE::Add {
+        compiler.bytecode.push(crate::OPTCODE::Subtract {
             target_register: compiler.register_counter,
             a_register,
             b_register,
         });
+        compiler.register_counter += 1;
+
     }
     if title == "NUMBER" {
         let number: isize = node.get_value().unwrap().parse().unwrap();
