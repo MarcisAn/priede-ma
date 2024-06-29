@@ -4,6 +4,7 @@ use hime_redist::ast::AstNode;
 mod parse_ast;
 mod hime;
 
+#[derive(Debug, Clone)]
 pub enum StackValue {
     NUM {
         register: usize,
@@ -13,7 +14,7 @@ pub enum StackValue {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OPTCODE {
     LoadNumber {
         value: isize,
@@ -25,19 +26,19 @@ pub enum OPTCODE {
     },
     Add {
         target_register: usize,
-        a_register: usize,
-        b_register: usize,
-    },
-    Subtract {
-        target_register: usize,
-        a_register: usize,
-        b_register: usize,
+        value_register: usize,
     },
     PrintFunction {
         register: usize,
     },
+    JumpIfZero {
+        register_to_check: usize,
+        line_to_jump_to: usize,
+    },
+    EmptyLine,
 }
 
+#[derive(Debug, Clone)]
 pub struct Compiler {
     register_counter: usize,
     stack: LinkedList<StackValue>,
@@ -68,10 +69,16 @@ pub fn compile(path: String) {
         println!("{:?}", optcode);
     }
 
-    format_xml_file(compiler.bytecode);
+    let xmlfile = format_xml_file(compiler.bytecode);
+    println!("{}", xmlfile);
+    let _ = fs::write(
+        "C:/ProgramData/MA Lighting Technologies/grandma/gma2_V_3.9.60/macros/priede.xml",
+        xmlfile
+    );
+    //C:\ProgramData\MA Lighting Technologies\grandma\gma2_V_3.9.60\macros
 }
 
-fn format_xml_file(bytecode: Vec<OPTCODE>) {
+fn format_xml_file(bytecode: Vec<OPTCODE>) -> String {
     let mut macro_lines = "".to_string();
 
     let mut counter = 0;
@@ -81,41 +88,41 @@ fn format_xml_file(bytecode: Vec<OPTCODE>) {
         counter += 1;
     }
 
-    let res = format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <GMA3 DataVersion=\"2.0.0.4\">
-                <Macro Guid=\"A5 21 19 8F 04 14 04 09 1F 47 52 30 D7 E4 C4 7C\">
-                {}
-                </Macro>
-        </GMA3>
-    ",
-        macro_lines
-    );
-    println!("{}", res);
+    format!("<?xml version=\"1.0\" encoding=\"utf-8\"?>
+<MA xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://schemas.malighting.de/grandma2/xml/MA\" xsi:schemaLocation=\"http://schemas.malighting.de/grandma2/xml/MA http://schemas.malighting.de/grandma2/xml/3.1.58/MA.xsd\" major_vers=\"3\" minor_vers=\"1\" stream_vers=\"58\">
+	<Info datetime=\"2015-05-22T14:08:42\" showfile=\"new show 2015-05-22\" />
+	<Macro index=\"0'\" name=\"macrotest\">
+    {}
+	</Macro>
+
+</MA>
+    ", macro_lines)
 }
 //<MacroLine Guid="A5 21 19 8F ED 18 04 09 69 4A 63 3E 9D 49 BD 7C" Command="Group 1" />
 fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
     let command = match optcode {
         OPTCODE::LoadNumber { value, register } =>
-            format!("SetUserVariable {} {}", "reg_".to_string() + &register.to_string(), value),
+            format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
+        OPTCODE::EmptyLine => "".to_string(),
         OPTCODE::LoadString { value, register } =>
-            format!("SetUserVariable {} {}", "reg_".to_string() + &register.to_string(), value),
-        OPTCODE::Add { target_register, a_register, b_register } =>
+            format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
+        OPTCODE::Add { target_register, value_register } =>
             format!(
-                "SetUserVar {} ${}${}",
+                "AddVar ${} = ${}",
                 "reg_".to_string() + &target_register.to_string(),
-                "reg_".to_string() + &a_register.to_string(),
-                "reg_".to_string() + &b_register.to_string()
-            ),
-        OPTCODE::Subtract { target_register, a_register, b_register } => format!(
-                "SetUserVar {} -${}${}",
-                "reg_".to_string() + &target_register.to_string(),
-                "reg_".to_string() + &a_register.to_string(),
-                "reg_".to_string() + &b_register.to_string()
+                "reg_".to_string() + &value_register.to_string()
             ),
         OPTCODE::PrintFunction { register } => todo!(),
+        OPTCODE::JumpIfZero { register_to_check, line_to_jump_to } =>
+            format!(
+                "[${} == 0]  Macro 1.1.{}",
+                "reg_".to_string() + &register_to_check.to_string(),
+                line_to_jump_to
+            ),
     };
-    format!("<MacroLine Guid=\"{}\" Command=\"{}\" />", lineid, command)
+    format!("<Macroline index=\"{}\" delay=\"0\">
+			<text>{}</text>
+		</Macroline>", lineid, command)
 }
 
 pub fn read_file(path: String) -> String {
