@@ -36,6 +36,9 @@ pub enum OPTCODE {
         line_to_jump_to: usize,
     },
     EmptyLine,
+    SelectFixture {
+        id_register: usize
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -119,6 +122,10 @@ fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
                 "reg_".to_string() + &register_to_check.to_string(),
                 line_to_jump_to
             ),
+            OPTCODE::SelectFixture { id_register } => format!(
+                "Fixture ${}",
+                "reg_".to_string() + &id_register.to_string(),
+            )
     };
     format!("<Macroline index=\"{}\" delay=\"0\">
 			<text>{}</text>

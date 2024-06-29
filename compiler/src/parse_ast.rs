@@ -13,6 +13,15 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
         for arg in node.child(1).children() {
             parse_ast(arg, compiler);
         }
+        let func_name = node.child(0).get_value().unwrap();
+        if func_name == "fixture" {
+            let a = compiler.stack.pop_back().unwrap();
+            let id_register = match a {
+                crate::StackValue::NUM { register } => register,
+                _ => panic!("addition with non-number"),
+            };
+            compiler.bytecode.push(crate::OPTCODE::SelectFixture { id_register });
+        }
     }
     if title == "plus" {
         parse_ast(node.child(0), compiler);
@@ -67,21 +76,59 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
         compiler.register_counter += 1;
     }
     if title == "if" {
-        parse_ast(node.child(0), compiler);
-        let mut cloned_compiler = compiler.clone();
-        cloned_compiler.bytecode = vec![];
-        parse_ast(node.child(1), &mut cloned_compiler);
-        let to_jump_to = cloned_compiler.bytecode.len() + compiler.bytecode.len();
-        let conditional = compiler.stack.pop_back().unwrap();
+        let is_ifelse = node.children_count() > 2;
+        if is_ifelse {
+            parse_ast(node.child(0), compiler);
+            let mut if_cloned_compiler = compiler.clone();
+            if_cloned_compiler.bytecode = vec![];
+            let mut else_cloned_compiler = compiler.clone();
+            else_cloned_compiler.bytecode = vec![];
+            parse_ast(node.child(1), &mut if_cloned_compiler);
+            parse_ast(node.child(3), &mut else_cloned_compiler);
 
-        let register_to_check = match conditional {
-            crate::StackValue::NUM { register } => register,
-            _ => panic!("addition with non-number"),
-        };
-        compiler.bytecode.push(crate::OPTCODE::JumpIfZero { register_to_check, line_to_jump_to: to_jump_to + 2 });
-        compiler.bytecode.append(&mut cloned_compiler.bytecode);
-        compiler.bytecode.push(crate::OPTCODE::EmptyLine);
+            let to_jump_to = if_cloned_compiler.bytecode.len() + compiler.bytecode.len() + 1;
+            let conditional = compiler.stack.pop_back().unwrap();
+            let register_to_check = match conditional {
+                crate::StackValue::NUM { register } => register,
+                _ => panic!("addition with non-number"),
+            };
+            compiler.bytecode.push(crate::OPTCODE::JumpIfZero {
+                register_to_check,
+                line_to_jump_to: to_jump_to + 2,
+            });
 
+            let to_jump_to_else =
+                if_cloned_compiler.bytecode.len() +
+                compiler.bytecode.len() +
+                else_cloned_compiler.bytecode.len() +
+                1;
+
+            if_cloned_compiler.bytecode.push(crate::OPTCODE::JumpIfZero {
+                register_to_check,
+                line_to_jump_to: to_jump_to_else + 1,
+            });
+            compiler.bytecode.append(&mut if_cloned_compiler.bytecode);
+            compiler.bytecode.append(&mut else_cloned_compiler.bytecode);
+            compiler.bytecode.push(crate::OPTCODE::EmptyLine);
+        } else {
+            parse_ast(node.child(0), compiler);
+            let mut cloned_compiler = compiler.clone();
+            cloned_compiler.bytecode = vec![];
+            parse_ast(node.child(1), &mut cloned_compiler);
+            let to_jump_to = cloned_compiler.bytecode.len() + compiler.bytecode.len();
+            let conditional = compiler.stack.pop_back().unwrap();
+
+            let register_to_check = match conditional {
+                crate::StackValue::NUM { register } => register,
+                _ => panic!("addition with non-number"),
+            };
+            compiler.bytecode.push(crate::OPTCODE::JumpIfZero {
+                register_to_check,
+                line_to_jump_to: to_jump_to + 2,
+            });
+            compiler.bytecode.append(&mut cloned_compiler.bytecode);
+            compiler.bytecode.push(crate::OPTCODE::EmptyLine);
+        }
     }
     if title == "NUMBER" {
         let number: isize = node.get_value().unwrap().parse().unwrap();
