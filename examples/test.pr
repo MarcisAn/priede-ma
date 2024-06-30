@@ -1,3 +1,6 @@
-ja 1-1 {
-    fixture(2+ 1)
+ja 4 >= 4 {
+    fixture(3)
+}
+citādi{
+    fixture(4)
 }

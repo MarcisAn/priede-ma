@@ -1,17 +1,17 @@
 use hime_redist::{ ast::AstNode, symbols::SemanticElementTrait };
 
-use crate::{ Compiler, StackValue };
+use crate::{ Compiler, StackValue, OPTCODE };
 
-pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
+pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE>) {
     let title = node.get_symbol().to_string();
     if title == "block" {
         for child in node.children() {
-            parse_ast(child, compiler);
+            parse_ast(child, compiler, block);
         }
     }
     if title == "func_call" {
         for arg in node.child(1).children() {
-            parse_ast(arg, compiler);
+            parse_ast(arg, compiler, block);
         }
         let func_name = node.child(0).get_value().unwrap();
         if func_name == "fixture" {
@@ -20,12 +20,66 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
                 crate::StackValue::NUM { register } => register,
                 _ => panic!("addition with non-number"),
             };
-            compiler.bytecode.push(crate::OPTCODE::SelectFixture { id_register });
+            block.push(crate::OPTCODE::SelectFixture { id_register });
         }
     }
+    if title == "comp_s" {
+        parse_ast(node.child(0), compiler, block);
+        parse_ast(node.child(2), compiler, block);
+        let a = compiler.stack.pop_back().unwrap();
+        let b = compiler.stack.pop_back().unwrap();
+
+        let a_register = match a {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+        let b_register = match b {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+        block.push(OPTCODE::LoadNumber { value: 0, register: compiler.register_counter });
+        println!("{}",node.child(1).get_symbol().name);
+        if node.child(1).get_symbol().name == "=" {
+            block.push(crate::OPTCODE::AreVarsEqual {
+                target_reg: compiler.register_counter,
+                a_reg: a_register,
+                b_reg: b_register,
+            });
+        }
+        else if node.child(1).get_symbol().name == ">" {
+            block.push(crate::OPTCODE::LargerThan {
+                target_reg: compiler.register_counter,
+                a_reg: b_register,
+                b_reg: a_register,
+            });
+        }
+        else if node.child(1).get_symbol().name == "<" {
+            block.push(crate::OPTCODE::LargerThan {
+                target_reg: compiler.register_counter,
+                a_reg: a_register,
+                b_reg: b_register,
+            });
+        }
+        else if node.child(1).get_symbol().name == ">=" {
+            block.push(crate::OPTCODE::LargerEq {
+                target_reg: compiler.register_counter,
+                a_reg: b_register,
+                b_reg: a_register,
+            });
+        }
+        else if node.child(1).get_symbol().name == "<=" {
+            block.push(crate::OPTCODE::LargerEq {
+                target_reg: compiler.register_counter,
+                a_reg: a_register,
+                b_reg: b_register,
+            });
+        }
+        compiler.stack.push_back(StackValue::NUM { register: compiler.register_counter });
+        compiler.register_counter += 1;
+    }
     if title == "plus" {
-        parse_ast(node.child(0), compiler);
-        parse_ast(node.child(1), compiler);
+        parse_ast(node.child(0), compiler, block);
+        parse_ast(node.child(1), compiler, block);
         let a = compiler.stack.pop_back().unwrap();
         let b = compiler.stack.pop_back().unwrap();
 
@@ -38,15 +92,15 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
             _ => panic!("addition with non-number"),
         };
 
-        compiler.bytecode.push(crate::OPTCODE::Add {
+        block.push(crate::OPTCODE::Add {
             target_register: a_register,
             value_register: b_register,
         });
         compiler.stack.push_back(crate::StackValue::NUM { register: a_register });
     }
     if title == "minus" {
-        parse_ast(node.child(0), compiler);
-        parse_ast(node.child(1), compiler);
+        parse_ast(node.child(0), compiler, block);
+        parse_ast(node.child(1), compiler, block);
         let b = compiler.stack.pop_back().unwrap();
         let a = compiler.stack.pop_back().unwrap();
 
@@ -59,15 +113,15 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
             _ => panic!("addition with non-number"),
         };
 
-        compiler.bytecode.push(crate::OPTCODE::LoadString {
+        block.push(crate::OPTCODE::LoadString {
             value: "\"-\"".to_string(),
             register: compiler.register_counter,
         });
-        compiler.bytecode.push(crate::OPTCODE::Add {
+        block.push(crate::OPTCODE::Add {
             target_register: compiler.register_counter,
             value_register: b_register,
         });
-        compiler.bytecode.push(crate::OPTCODE::Add {
+        block.push(crate::OPTCODE::Add {
             target_register: a_register,
             value_register: compiler.register_counter,
         });
@@ -78,56 +132,54 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
     if title == "if" {
         let is_ifelse = node.children_count() > 2;
         if is_ifelse {
-            parse_ast(node.child(0), compiler);
-            let mut if_cloned_compiler = compiler.clone();
-            if_cloned_compiler.bytecode = vec![];
-            let mut else_cloned_compiler = compiler.clone();
-            else_cloned_compiler.bytecode = vec![];
-            parse_ast(node.child(1), &mut if_cloned_compiler);
-            parse_ast(node.child(3), &mut else_cloned_compiler);
+            parse_ast(node.child(0), compiler, block);
+            let mut if_bytecode: Vec<OPTCODE> = vec![];
+            let mut else_bytecode: Vec<OPTCODE> = vec![];
 
-            let to_jump_to = if_cloned_compiler.bytecode.len() + compiler.bytecode.len() + 1;
+            parse_ast(node.child(1), compiler, &mut if_bytecode);
+            parse_ast(node.child(3), compiler, &mut else_bytecode);
+
+            let to_jump_to = if_bytecode.len() + block.len() + 1;
             let conditional = compiler.stack.pop_back().unwrap();
             let register_to_check = match conditional {
                 crate::StackValue::NUM { register } => register,
                 _ => panic!("addition with non-number"),
             };
-            compiler.bytecode.push(crate::OPTCODE::JumpIfZero {
+            block.push(crate::OPTCODE::JumpIfZero {
                 register_to_check,
                 line_to_jump_to: to_jump_to + 2,
             });
 
             let to_jump_to_else =
-                if_cloned_compiler.bytecode.len() +
-                compiler.bytecode.len() +
-                else_cloned_compiler.bytecode.len() +
+                if_bytecode.len() +
+                block.len() +
+                else_bytecode.len() +
                 1;
 
-            if_cloned_compiler.bytecode.push(crate::OPTCODE::JumpIfZero {
-                register_to_check,
+            if_bytecode.push(crate::OPTCODE::Jump {
                 line_to_jump_to: to_jump_to_else + 1,
             });
-            compiler.bytecode.append(&mut if_cloned_compiler.bytecode);
-            compiler.bytecode.append(&mut else_cloned_compiler.bytecode);
-            compiler.bytecode.push(crate::OPTCODE::EmptyLine);
+            block.append(&mut if_bytecode);
+            block.append(&mut else_bytecode);
+            block.push(crate::OPTCODE::EmptyLine);
         } else {
-            parse_ast(node.child(0), compiler);
-            let mut cloned_compiler = compiler.clone();
-            cloned_compiler.bytecode = vec![];
-            parse_ast(node.child(1), &mut cloned_compiler);
-            let to_jump_to = cloned_compiler.bytecode.len() + compiler.bytecode.len();
+            parse_ast(node.child(0), compiler, block);
+            let mut if_bytecode: Vec<OPTCODE> = vec![];
+
+            parse_ast(node.child(1), compiler, &mut if_bytecode);
+            let to_jump_to = block.len() + if_bytecode.len();
             let conditional = compiler.stack.pop_back().unwrap();
 
             let register_to_check = match conditional {
                 crate::StackValue::NUM { register } => register,
                 _ => panic!("addition with non-number"),
             };
-            compiler.bytecode.push(crate::OPTCODE::JumpIfZero {
+            block.push(crate::OPTCODE::JumpIfZero {
                 register_to_check,
                 line_to_jump_to: to_jump_to + 2,
             });
-            compiler.bytecode.append(&mut cloned_compiler.bytecode);
-            compiler.bytecode.push(crate::OPTCODE::EmptyLine);
+            block.append(&mut if_bytecode.clone());
+            block.push(crate::OPTCODE::EmptyLine);
         }
     }
     if title == "NUMBER" {
@@ -135,7 +187,7 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler) {
         compiler.stack.push_back(crate::StackValue::NUM {
             register: compiler.register_counter,
         });
-        compiler.bytecode.push(crate::OPTCODE::LoadNumber {
+        block.push(crate::OPTCODE::LoadNumber {
             register: compiler.register_counter,
             value: number,
         });

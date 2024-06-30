@@ -35,17 +35,34 @@ pub enum OPTCODE {
         register_to_check: usize,
         line_to_jump_to: usize,
     },
+    Jump {
+        line_to_jump_to: usize,
+    },
     EmptyLine,
     SelectFixture {
-        id_register: usize
-    }
+        id_register: usize,
+    },
+    AreVarsEqual {
+        target_reg: usize,
+        a_reg: usize,
+        b_reg: usize,
+    },
+    LargerThan {
+        target_reg: usize,
+        a_reg: usize,
+        b_reg: usize,
+    },
+    LargerEq {
+        target_reg: usize,
+        a_reg: usize,
+        b_reg: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
 pub struct Compiler {
     register_counter: usize,
     stack: LinkedList<StackValue>,
-    bytecode: Vec<OPTCODE>,
 }
 
 impl Compiler {
@@ -53,7 +70,6 @@ impl Compiler {
         return Compiler {
             register_counter: 0,
             stack: LinkedList::new(),
-            bytecode: vec![],
         };
     }
 }
@@ -66,13 +82,14 @@ pub fn compile(path: String) {
     let root = ast.get_root();
     print_ast(root);
     let mut compiler = Compiler::new();
-    parse_ast::parse_ast(root, &mut compiler);
+    let mut main_block: Vec<OPTCODE> = vec![];
+    parse_ast::parse_ast(root, &mut compiler, &mut main_block);
 
-    for optcode in &compiler.bytecode {
+    for optcode in &main_block {
         println!("{:?}", optcode);
     }
 
-    let xmlfile = format_xml_file(compiler.bytecode);
+    let xmlfile = format_xml_file(main_block);
     println!("{}", xmlfile);
     let _ = fs::write(
         "C:/ProgramData/MA Lighting Technologies/grandma/gma2_V_3.9.60/macros/priede.xml",
@@ -106,6 +123,27 @@ fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
     let command = match optcode {
         OPTCODE::LoadNumber { value, register } =>
             format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
+        OPTCODE::AreVarsEqual { target_reg, a_reg, b_reg } =>
+            format!(
+                "[${} == ${}] SetVar ${} = 1",
+                "reg_".to_string() + &a_reg.to_string(),
+                "reg_".to_string() + &b_reg.to_string(),
+                "reg_".to_string() + &target_reg.to_string()
+            ),
+        OPTCODE::LargerThan { target_reg, a_reg, b_reg } =>
+            format!(
+                "[${} > ${}] SetVar ${} = 1",
+                "reg_".to_string() + &a_reg.to_string(),
+                "reg_".to_string() + &b_reg.to_string(),
+                "reg_".to_string() + &target_reg.to_string()
+            ),
+        OPTCODE::LargerEq { target_reg, a_reg, b_reg } =>
+            format!(
+                "[${} >= ${}] SetVar ${} = 1",
+                "reg_".to_string() + &a_reg.to_string(),
+                "reg_".to_string() + &b_reg.to_string(),
+                "reg_".to_string() + &target_reg.to_string()
+            ),
         OPTCODE::EmptyLine => "".to_string(),
         OPTCODE::LoadString { value, register } =>
             format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
@@ -122,10 +160,13 @@ fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
                 "reg_".to_string() + &register_to_check.to_string(),
                 line_to_jump_to
             ),
-            OPTCODE::SelectFixture { id_register } => format!(
-                "Fixture ${}",
-                "reg_".to_string() + &id_register.to_string(),
-            )
+        OPTCODE::Jump { line_to_jump_to } =>
+            format!(
+                "Macro 1.1.{}",
+                line_to_jump_to
+            ),
+        OPTCODE::SelectFixture { id_register } =>
+            format!("Fixture ${}", "reg_".to_string() + &id_register.to_string()),
     };
     format!("<Macroline index=\"{}\" delay=\"0\">
 			<text>{}</text>
