@@ -1,6 +1,11 @@
-ja 4 >= 4 {
-    fixture(3)
-}
-citādi{
-    fixture(4)
-}
+sk aa : 1 + 3
+
+fixture(aa)
+
+aa +: 6 + 4
+
+fixture(aa)
+
+aa : 4
+
+fixture(aa)
