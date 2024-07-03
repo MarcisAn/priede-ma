@@ -125,6 +125,60 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE
         compiler.stack.push_back(crate::StackValue::NUM { register: a_register });
         compiler.register_counter += 1;
     }
+
+    if title == "var_def" {
+        if node.child(0).get_value().unwrap() != "sk" {
+            panic!("Not supported");
+        }
+        parse_ast(node.child(2), compiler, block);
+        let value = compiler.stack.pop_back().unwrap();
+
+        let value_register = match value {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+        block.push(OPTCODE::DefineVariable {
+            name: node.child(1).get_value().unwrap().to_string(),
+            value_reg: value_register,
+        });
+    }
+    if title == "ID" {
+        block.push(OPTCODE::GetVariable {
+            name: node.get_value().unwrap().to_string(),
+            target_reg: compiler.register_counter,
+        });
+        compiler.stack.push_back(crate::StackValue::NUM { register: compiler.register_counter });
+        compiler.register_counter += 1;
+    }
+    if title == "id_assign" {
+        parse_ast(node.child(2), compiler, block);
+        let value = compiler.stack.pop_back().unwrap();
+
+        let value_register = match value {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+        let varname = node.child(0).get_value().unwrap().to_string();
+        if node.child(1).get_symbol().name == ":" {
+            block.push(OPTCODE::DefineVariable {
+                name: varname,
+                value_reg: value_register,
+            });
+        } else if node.child(1).get_symbol().name == "+:" {
+            block.push(OPTCODE::GetVariable {
+                name: varname,
+                target_reg: compiler.register_counter,
+            });
+            block.push(OPTCODE::Add {
+                target_register: compiler.register_counter,
+                value_register: value_register,
+            });
+            block.push(OPTCODE::DefineVariable {
+                name: node.child(0).get_value().unwrap().to_string(),
+                value_reg: compiler.register_counter,
+            });
+        }
+    }
     if title == "if" {
         let is_ifelse = node.children_count() > 2;
         if is_ifelse {
@@ -174,54 +228,26 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE
             block.push(crate::OPTCODE::EmptyLine);
         }
     }
-    if title == "var_def" {
-        if node.child(0).get_value().unwrap() != "sk" {
-            panic!("Not supported");
-        }
-        parse_ast(node.child(2), compiler, block);
-        let value = compiler.stack.pop_back().unwrap();
+    if title == "w_loop" {
+        let jump_back_target = block.len();
+        parse_ast(node.child(0), compiler, block);
+        let mut if_bytecode: Vec<OPTCODE> = vec![];
 
-        let value_register = match value {
+        parse_ast(node.child(1), compiler, &mut if_bytecode);
+        let to_jump_to = block.len() + if_bytecode.len();
+        let conditional = compiler.stack.pop_back().unwrap();
+
+        let register_to_check = match conditional {
             crate::StackValue::NUM { register } => register,
             _ => panic!("addition with non-number"),
         };
-        block.push(OPTCODE::DefineVariable {
-            name: node.child(1).get_value().unwrap().to_string(),
-            value_reg: value_register,
+        block.push(crate::OPTCODE::JumpIfZero {
+            register_to_check,
+            line_to_jump_to: to_jump_to + 3,
         });
-    }
-    if title == "ID" {
-        block.push(OPTCODE::GetVariable {
-            name: node.get_value().unwrap().to_string(),
-            target_reg: compiler.register_counter,
-        });
-        compiler.stack.push_back(crate::StackValue::NUM { register: compiler.register_counter });
-        compiler.register_counter += 1;
-    }
-    if title == "id_assign" {
-        parse_ast(node.child(2), compiler, block);
-        let value = compiler.stack.pop_back().unwrap();
-
-        let value_register = match value {
-            crate::StackValue::NUM { register } => register,
-            _ => panic!("addition with non-number"),
-        };
-        let varname = node.child(0).get_value().unwrap().to_string();
-        if node.child(1).get_symbol().name == ":"{
-
-            block.push(OPTCODE::DefineVariable {
-                name: varname,
-                value_reg: value_register,
-            });
-        }
-        else if node.child(1).get_symbol().name == "+:" {
-            block.push(OPTCODE::GetVariable { name: varname, target_reg: compiler.register_counter });
-            block.push(OPTCODE::Add { target_register: compiler.register_counter, value_register: value_register });
-            block.push(OPTCODE::DefineVariable {
-                name: node.child(0).get_value().unwrap().to_string(),
-                value_reg: compiler.register_counter,
-            });
-        }
+        block.append(&mut if_bytecode.clone());
+        block.push(OPTCODE::Jump { line_to_jump_to: jump_back_target + 1 });
+        block.push(crate::OPTCODE::EmptyLine);
     }
     if title == "NUMBER" {
         let number: isize = node.get_value().unwrap().parse().unwrap();
