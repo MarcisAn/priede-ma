@@ -1,3 +1,5 @@
 sk aa : 3
-aa++
-fixture(aa)
+kamēr aa < 6 {
+    fixture(aa)
+    aa +: 1
+}
