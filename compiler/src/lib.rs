@@ -175,7 +175,7 @@ fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
             ),
         OPTCODE::SelectFixture { id_register } =>
             format!("Fixture ${}", "reg_".to_string() + &id_register.to_string()),
-        OPTCODE::DefineVariable { name, value_reg } => format!("SetVar $priedevar_{} = $reg{}", name, value_reg),
+        OPTCODE::DefineVariable { name, value_reg } => format!("SetVar $priedevar_{} = $reg_{}", name, value_reg),
         OPTCODE::GetVariable { name, target_reg } => format!("SetVar $reg_{} = $priedevar_{}", target_reg, name)
     };
     format!("<Macroline index=\"{}\" delay=\"0\">
