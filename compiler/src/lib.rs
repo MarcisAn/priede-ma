@@ -1,7 +1,9 @@
 use std::{ collections::LinkedList, fs, process };
-
+mod xml_output;
+use xml_output::format_xml_file;
 use hime_redist::ast::AstNode;
 mod parse_ast;
+use parse_ast::parse_ast;
 mod hime;
 
 #[derive(Debug, Clone)]
@@ -59,12 +61,12 @@ pub enum OPTCODE {
     },
     DefineVariable {
         name: String,
-        value_reg: usize
+        value_reg: usize,
     },
     GetVariable {
         name: String,
-        target_reg: usize
-    }
+        target_reg: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +82,54 @@ impl Compiler {
             stack: LinkedList::new(),
         };
     }
+    pub fn add(&mut self, block: &mut Vec<OPTCODE>) {
+        let a = self.stack.pop_back().unwrap();
+        let b = self.stack.pop_back().unwrap();
+
+        let a_register = match a {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+        let b_register = match b {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+
+        block.push(crate::OPTCODE::Add {
+            target_register: a_register,
+            value_register: b_register,
+        });
+        self.stack.push_back(crate::StackValue::NUM { register: a_register });
+    }
+    pub fn subtract(&mut self, block: &mut Vec<OPTCODE>) {
+        let b = self.stack.pop_back().unwrap();
+        let a = self.stack.pop_back().unwrap();
+
+        let a_register = match a {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+        let b_register = match b {
+            crate::StackValue::NUM { register } => register,
+            _ => panic!("addition with non-number"),
+        };
+
+        block.push(crate::OPTCODE::LoadString {
+            value: "\"-\"".to_string(),
+            register: self.register_counter,
+        });
+        block.push(crate::OPTCODE::Add {
+            target_register: self.register_counter,
+            value_register: b_register,
+        });
+        block.push(crate::OPTCODE::Add {
+            target_register: a_register,
+            value_register: self.register_counter,
+        });
+
+        self.stack.push_back(crate::StackValue::NUM { register: a_register });
+        self.register_counter += 1;
+    }
 }
 
 pub fn compile(path: String) {
@@ -91,96 +141,19 @@ pub fn compile(path: String) {
     print_ast(root);
     let mut compiler = Compiler::new();
     let mut main_block: Vec<OPTCODE> = vec![];
-    parse_ast::parse_ast(root, &mut compiler, &mut main_block);
+    parse_ast(root, &mut compiler, &mut main_block);
 
     for optcode in &main_block {
         println!("{:?}", optcode);
     }
 
     let xmlfile = format_xml_file(main_block);
-    println!("{}", xmlfile);
+    //println!("{}", xmlfile);
     let _ = fs::write(
         "C:/ProgramData/MA Lighting Technologies/grandma/gma2_V_3.9.60/macros/priede.xml",
         xmlfile
     );
     //C:\ProgramData\MA Lighting Technologies\grandma\gma2_V_3.9.60\macros
-}
-
-fn format_xml_file(bytecode: Vec<OPTCODE>) -> String {
-    let mut macro_lines = "".to_string();
-
-    let mut counter = 0;
-    for optcode in bytecode {
-        macro_lines += &format_macro_line(optcode, counter);
-        macro_lines += "\n";
-        counter += 1;
-    }
-
-    format!("<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<MA xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://schemas.malighting.de/grandma2/xml/MA\" xsi:schemaLocation=\"http://schemas.malighting.de/grandma2/xml/MA http://schemas.malighting.de/grandma2/xml/3.1.58/MA.xsd\" major_vers=\"3\" minor_vers=\"1\" stream_vers=\"58\">
-	<Info datetime=\"2015-05-22T14:08:42\" showfile=\"new show 2015-05-22\" />
-	<Macro index=\"0'\" name=\"macrotest\">
-    {}
-	</Macro>
-
-</MA>
-    ", macro_lines)
-}
-//<MacroLine Guid="A5 21 19 8F ED 18 04 09 69 4A 63 3E 9D 49 BD 7C" Command="Group 1" />
-fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
-    let command = match optcode {
-        OPTCODE::LoadNumber { value, register } =>
-            format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
-        OPTCODE::AreVarsEqual { target_reg, a_reg, b_reg } =>
-            format!(
-                "[${} == ${}] SetVar ${} = 1",
-                "reg_".to_string() + &a_reg.to_string(),
-                "reg_".to_string() + &b_reg.to_string(),
-                "reg_".to_string() + &target_reg.to_string()
-            ),
-        OPTCODE::LargerThan { target_reg, a_reg, b_reg } =>
-            format!(
-                "[${} > ${}] SetVar ${} = 1",
-                "reg_".to_string() + &a_reg.to_string(),
-                "reg_".to_string() + &b_reg.to_string(),
-                "reg_".to_string() + &target_reg.to_string()
-            ),
-        OPTCODE::LargerEq { target_reg, a_reg, b_reg } =>
-            format!(
-                "[${} >= ${}] SetVar ${} = 1",
-                "reg_".to_string() + &a_reg.to_string(),
-                "reg_".to_string() + &b_reg.to_string(),
-                "reg_".to_string() + &target_reg.to_string()
-            ),
-        OPTCODE::EmptyLine => "".to_string(),
-        OPTCODE::LoadString { value, register } =>
-            format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
-        OPTCODE::Add { target_register, value_register } =>
-            format!(
-                "AddVar ${} = ${}",
-                "reg_".to_string() + &target_register.to_string(),
-                "reg_".to_string() + &value_register.to_string()
-            ),
-        OPTCODE::PrintFunction { register } => todo!(),
-        OPTCODE::JumpIfZero { register_to_check, line_to_jump_to } =>
-            format!(
-                "[${} == 0]  Macro 1.1.{}",
-                "reg_".to_string() + &register_to_check.to_string(),
-                line_to_jump_to
-            ),
-        OPTCODE::Jump { line_to_jump_to } =>
-            format!(
-                "Macro 1.1.{}",
-                line_to_jump_to
-            ),
-        OPTCODE::SelectFixture { id_register } =>
-            format!("Fixture ${}", "reg_".to_string() + &id_register.to_string()),
-        OPTCODE::DefineVariable { name, value_reg } => format!("SetVar $priedevar_{} = $reg_{}", name, value_reg),
-        OPTCODE::GetVariable { name, target_reg } => format!("SetVar $reg_{} = $priedevar_{}", target_reg, name)
-    };
-    format!("<Macroline index=\"{}\" delay=\"0\">
-			<text>{}</text>
-		</Macroline>", lineid, command)
 }
 
 pub fn read_file(path: String) -> String {
