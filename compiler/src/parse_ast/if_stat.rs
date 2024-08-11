@@ -34,23 +34,12 @@ pub fn if_stat(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE>)
             block.append(&mut else_bytecode);
             block.push(crate::OPTCODE::EmptyLine);
         } else {
-            parse_ast(node.child(0), compiler, block);
-            let mut if_bytecode: Vec<OPTCODE> = vec![];
+            let mut exp_block: Vec<OPTCODE> = vec![];
+            parse_ast(node.child(0), compiler, &mut exp_block);
+            let mut body_block: Vec<OPTCODE> = vec![];
+            parse_ast(node.child(1), compiler, &mut body_block);
 
-            parse_ast(node.child(1), compiler, &mut if_bytecode);
-            let to_jump_to = block.len() + if_bytecode.len();
-            let conditional = compiler.stack.pop_back().unwrap();
-
-            let register_to_check = match conditional {
-                crate::StackValue::NUM { register } => register,
-                _ => panic!("addition with non-number"),
-            };
-            block.push(crate::OPTCODE::JumpIfZero {
-                register_to_check,
-                line_to_jump_to: to_jump_to + 2,
-            });
-            block.append(&mut if_bytecode.clone());
-            block.push(crate::OPTCODE::EmptyLine);
+            compiler.if_stat(&mut body_block, &mut exp_block, block);
         }
 }
 
