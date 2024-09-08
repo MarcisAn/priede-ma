@@ -26,11 +26,8 @@ pub fn math(title: &str, compiler: &mut Compiler, node: AstNode, block: &mut Vec
         };
 
 
-        block.push(crate::OPTCODE::Add {
-            target_register: a_register,
-            value_register: b_register,
-        });
-        compiler.stack.push_back(crate::StackValue::NUM { register: a_register });
+        block.push(crate::OPTCODE::DefineVariable { name: "multA".to_string(), value_reg: a_register });
+        block.push(crate::OPTCODE::DefineVariable { name: "multB".to_string(), value_reg: b_register });
     }
     if title == "minus" {
         parse_ast(node.child(0), compiler, block);

@@ -19,7 +19,7 @@ pub enum StackValue {
 #[derive(Debug, Clone)]
 pub enum OPTCODE {
     LoadNumber {
-        value: isize,
+        value: String,
         register: usize,
     },
     LoadString {
@@ -137,6 +137,7 @@ pub fn compile(path: String) {
 
     let parse_res = hime::priede::parse_string(file_content.clone());
     let ast = parse_res.get_ast();
+    print!("{:?}", parse_res.errors.errors);
     let root = ast.get_root();
     print_ast(root);
     let mut compiler = Compiler::new();

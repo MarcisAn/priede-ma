@@ -1,1 +1,21 @@
-fixture(3 * 2)
+sk res: 0
+
+sk absA: multA
+sk absB: multB
+ja multA < 0 {
+    absA: 0 - multA
+}
+ja multB < 0 {
+    absB: 0 - multB
+}
+
+sk wholeB: 0
+kamēr absB >= 1 {
+    res +: absA
+    absB -: 1
+    wholeB +: 1
+}
+
+kamēr absB > 0 {
+    res +: absA
+}

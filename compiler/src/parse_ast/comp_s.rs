@@ -18,7 +18,7 @@ pub fn comp_s(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE>) 
         crate::StackValue::NUM { register } => register,
         _ => panic!("addition with non-number"),
     };
-    block.push(OPTCODE::LoadNumber { value: 0, register: compiler.register_counter });
+    block.push(OPTCODE::LoadNumber { value: "0".to_string(), register: compiler.register_counter });
     println!("{}", node.child(1).get_symbol().name);
     if node.child(1).get_symbol().name == "=" {
         block.push(crate::OPTCODE::AreVarsEqual {
