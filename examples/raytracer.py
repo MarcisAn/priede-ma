@@ -2,16 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def normalize(vector):
-    x = vector[0]
-    y = vector[1]
-    z = vector[2]
-    #print(vector)
-    #print(np.linalg.norm(vector))
-    xnorm = x / np.sqrt(x**2 + y**2 + z**2)
-    ynorm = y / np.sqrt(x**2 + y**2 + z**2)
-    znorm = z / np.sqrt(x**2 + y**2 + z**2)
-    
-    return np.array([xnorm, ynorm, znorm])
+    return vector / np.linalg.norm(vector)
 
 def reflected(vector, axis):
     return vector - 2 * np.dot(vector, axis) * axis
@@ -42,7 +33,10 @@ height = 200
 
 max_depth = 3
 
-camera = np.array([0, 0, 1])
+camerax = 0
+cameray = 0
+cameraz = 0
+
 ratio = float(width) / height
 screen = (-1, 1 / ratio, 1, -1 / ratio) # left, top, right, bottom
 
