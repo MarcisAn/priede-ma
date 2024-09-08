@@ -29,7 +29,6 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE
             parse_ast(child, compiler, block);
         }
     }
-    println!("{}", title);
     match title {
         "func_call" => func_call(compiler, node, block),
         "comp_s" => comp_s(compiler, node, block),
@@ -38,7 +37,7 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE
         "reiz" => math(title, compiler, node, block),
         "dal" => math(title, compiler, node, block),
         "var_def" => var_def(compiler, node, block),
-        "ID" => id(compiler, node, block),
+        "id" => id(compiler, node, block),
         "id_assign" => id_assign(compiler, node, block),
         "if" => if_stat(compiler, node, block),
         "w_loop" => w_loop(compiler, node, block),

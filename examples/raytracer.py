@@ -33,10 +33,7 @@ height = 200
 
 max_depth = 3
 
-camerax = 0
-cameray = 0
-cameraz = 0
-
+camera = np.array([0, 0, 1])
 ratio = float(width) / height
 screen = (-1, 1 / ratio, 1, -1 / ratio) # left, top, right, bottom
 

@@ -1,4 +1,4 @@
-use std::{ collections::LinkedList, f32::consts::E, fs, process };
+use std::{ collections::LinkedList, fs, process };
 mod xml_output;
 use xml_output::format_xml_file;
 use hime_redist::ast::AstNode;
@@ -129,55 +129,6 @@ impl Compiler {
 
         self.stack.push_back(crate::StackValue::NUM { register: a_register });
         self.register_counter += 1;
-    }
-    pub fn while_loop(
-        &mut self,
-        main_block: &mut Vec<OPTCODE>,
-        exp_block: &mut Vec<OPTCODE>,
-        body_block: &mut Vec<OPTCODE>,
-        exp_reg: Option<usize>
-    ) {
-        let jump_back_target = main_block.len();
-
-        let to_jump_to = main_block.len() + body_block.len();
-        let register_to_check = if exp_reg.is_none() {
-            let conditional = self.stack.pop_back().unwrap();
-
-            match conditional {
-                crate::StackValue::NUM { register } => register,
-                _ => panic!("addition with non-number"),
-            }
-        } else {
-            exp_reg.unwrap()
-        };
-        main_block.append(exp_block);
-        main_block.push(crate::OPTCODE::JumpIfZero {
-            register_to_check,
-            line_to_jump_to: to_jump_to + 3,
-        });
-        main_block.append(&mut body_block.clone());
-        main_block.push(OPTCODE::Jump { line_to_jump_to: jump_back_target + 1 });
-        main_block.push(crate::OPTCODE::EmptyLine);
-    }
-    pub fn if_stat(
-        &mut self,
-        body_block: &mut Vec<OPTCODE>,
-        exp_block: &mut Vec<OPTCODE>,
-        block: &mut Vec<OPTCODE>
-    ) {
-        let to_jump_to = block.len() + body_block.len();
-        let conditional = self.stack.pop_back().unwrap();
-
-        let register_to_check = match conditional {
-            crate::StackValue::NUM { register } => register,
-            _ => panic!("addition with non-number"),
-        };
-        block.push(crate::OPTCODE::JumpIfZero {
-            register_to_check,
-            line_to_jump_to: to_jump_to + 2,
-        });
-        block.append(&mut body_block.clone());
-        block.push(crate::OPTCODE::EmptyLine);
     }
 }
 
