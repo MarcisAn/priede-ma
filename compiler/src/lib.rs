@@ -67,6 +67,9 @@ pub enum OPTCODE {
         name: String,
         target_reg: usize,
     },
+    CallMacro {
+        number: usize
+    }
 }
 
 #[derive(Debug, Clone)]

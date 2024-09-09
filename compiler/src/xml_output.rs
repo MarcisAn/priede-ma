@@ -1,3 +1,5 @@
+use core::num;
+
 use crate::OPTCODE;
 
 pub fn format_xml_file(bytecode: Vec<OPTCODE>) -> String {
@@ -22,6 +24,7 @@ pub fn format_xml_file(bytecode: Vec<OPTCODE>) -> String {
 }
 //<MacroLine Guid="A5 21 19 8F ED 18 04 09 69 4A 63 3E 9D 49 BD 7C" Command="Group 1" />
 pub fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
+    let mut delay = 0;
     let command = match optcode {
         OPTCODE::LoadNumber { value, register } =>
             format!("SetVar ${} = {}", "reg_".to_string() + &register.to_string(), value),
@@ -70,9 +73,10 @@ pub fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
         OPTCODE::SelectFixture { id_register } =>
             format!("Fixture ${}", "reg_".to_string() + &id_register.to_string()),
         OPTCODE::DefineVariable { name, value_reg } => format!("SetVar $priedevar_{} = $reg_{}", name, value_reg),
-        OPTCODE::GetVariable { name, target_reg } => format!("SetVar $reg_{} = $priedevar_{}", target_reg, name)
+        OPTCODE::GetVariable { name, target_reg } => format!("SetVar $reg_{} = $priedevar_{}", target_reg, name),
+        OPTCODE::CallMacro { number } => {delay = 1; format!("Macro {}", number)},
     };
-    format!("<Macroline index=\"{}\" delay=\"0\">
+    format!("<Macroline index=\"{}\" delay=\"{}\">
 			<text>{}</text>
-		</Macroline>", lineid, command)
+		</Macroline>", lineid, delay, command)
 }

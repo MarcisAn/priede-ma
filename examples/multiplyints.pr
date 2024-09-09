@@ -1,0 +1,18 @@
+sk res: 0
+
+sk negativs: 0
+
+ja multB < 0{
+    multB: 0 - multB
+    negativs: 1
+}
+
+sk skaititajs: 0
+kamēr skaititajs < multB {
+    res +: multA
+    skaititajs +: 1
+}
+
+ja negativs = 1 {
+    res: 0 - res
+}

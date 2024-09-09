@@ -9,7 +9,7 @@ pub fn number(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE>) 
     });
     block.push(crate::OPTCODE::LoadNumber {
         register: compiler.register_counter,
-        value: number.to_string(),
+        value: number.to_string().replace(",", "."),
     });
     compiler.register_counter += 1;
 }
