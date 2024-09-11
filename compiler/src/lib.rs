@@ -69,7 +69,10 @@ pub enum OPTCODE {
     },
     CallMacro {
         number: usize
-    }
+    },
+    DimmerFull,
+    DimmerZero,
+    ColorPreset{number: usize}
 }
 
 #[derive(Debug, Clone)]

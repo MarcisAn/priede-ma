@@ -75,6 +75,9 @@ pub fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
         OPTCODE::DefineVariable { name, value_reg } => format!("SetVar $priedevar_{} = $reg_{}", name, value_reg),
         OPTCODE::GetVariable { name, target_reg } => format!("SetVar $reg_{} = $priedevar_{}", target_reg, name),
         OPTCODE::CallMacro { number } => {delay = 1; format!("Macro {}", number)},
+        OPTCODE::DimmerFull => format!("At Preset 1.2"),
+        OPTCODE::DimmerZero => format!("At Preset 1.1"),
+        OPTCODE::ColorPreset { number } => format!("At Preset 4.{}", number),
     };
     format!("<Macroline index=\"{}\" delay=\"{}\">
 			<text>{}</text>

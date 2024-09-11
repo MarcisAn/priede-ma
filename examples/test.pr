@@ -1,2 +1,7 @@
-sk lifted: mint(1000000; 4,2)
-sk float_res: mint(lifted; 0,000001)
+fixture(195)
+fixture(196)
+fixture(185)
+fixture(186)
+
+fulldim()
+color(1)

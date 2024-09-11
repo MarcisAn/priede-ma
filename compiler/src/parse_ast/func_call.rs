@@ -45,4 +45,13 @@ pub fn func_call(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE
         compiler.stack.push_back(crate::StackValue::NUM { register: compiler.register_counter });
         compiler.register_counter += 1;
     }
+    else if func_name == "fulldim" {
+        block.push(OPTCODE::DimmerFull)
+    }
+    else if func_name == "zerodim" {
+        block.push(OPTCODE::DimmerZero)
+    }
+    else if func_name == "color"{
+        block.push(OPTCODE::ColorPreset { number: node.child(1).child(0).get_value().unwrap().parse::<usize>().unwrap() })
+    }
 }
