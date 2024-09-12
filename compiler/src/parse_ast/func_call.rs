@@ -51,7 +51,17 @@ pub fn func_call(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE
     else if func_name == "zerodim" {
         block.push(OPTCODE::DimmerZero)
     }
+    else if func_name == "clear" {
+        block.push(OPTCODE::Clear)
+    }
+    else if func_name == "clearall" {
+        block.push(OPTCODE::ClearAll)
+    }
+    else if func_name == "wait" {
+        block.push(OPTCODE::Wait { seconds: node.child(1).child(0).get_value().unwrap().replace(",", ".").parse::<f64>().unwrap() })
+    }
     else if func_name == "color"{
         block.push(OPTCODE::ColorPreset { number: node.child(1).child(0).get_value().unwrap().parse::<usize>().unwrap() })
     }
 }
+//(number.replace(",", ".").parse::<f64>().unwrap()).to_string().replace(",", ".")

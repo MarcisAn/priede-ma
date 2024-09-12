@@ -7,11 +7,11 @@ use super::parse_ast;
 pub fn w_loop(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE>) {
     let jump_back_target = block.len();
     parse_ast(node.child(0), compiler, block);
+    let conditional = compiler.stack.pop_back().unwrap();
     let mut if_bytecode: Vec<OPTCODE> = vec![];
 
     parse_ast(node.child(1), compiler, &mut if_bytecode);
     let to_jump_to = block.len() + if_bytecode.len();
-    let conditional = compiler.stack.pop_back().unwrap();
 
     let register_to_check = match conditional {
         crate::StackValue::NUM { register } => register,

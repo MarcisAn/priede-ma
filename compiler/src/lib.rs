@@ -72,7 +72,10 @@ pub enum OPTCODE {
     },
     DimmerFull,
     DimmerZero,
-    ColorPreset{number: usize}
+    ColorPreset{number: usize},
+    Clear,
+    ClearAll,
+    Wait{seconds: f64}
 }
 
 #[derive(Debug, Clone)]

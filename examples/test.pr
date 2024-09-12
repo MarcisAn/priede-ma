@@ -1,7 +1,15 @@
-fixture(195)
-fixture(196)
-fixture(185)
-fixture(186)
+sk y_level: 19
+sk x_level: 5
 
-fulldim()
-color(1)
+kamēr y_level >= 2 {
+    fixture(mint(y_level; 10) + x_level)
+    fixture(mint(y_level; 10) + x_level + 1)
+    fixture(mint(y_level - 1; 10) + x_level)
+    fixture(mint(y_level - 1; 10) + x_level + 1)
+    fulldim()
+    color(1)
+    wait(1)
+    clearall()
+    y_level: y_level - 1
+}
+    x_level: 5
