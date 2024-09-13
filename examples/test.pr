@@ -1,15 +1,29 @@
-sk y_level: 19
 sk x_level: 5
+sk tetramino_index: 3
 
-kamēr y_level >= 2 {
-    fixture(mint(y_level; 10) + x_level)
-    fixture(mint(y_level; 10) + x_level + 1)
-    fixture(mint(y_level - 1; 10) + x_level)
-    fixture(mint(y_level - 1; 10) + x_level + 1)
-    fulldim()
-    color(1)
-    wait(1)
-    clearall()
-    y_level: y_level - 1
-}
-    x_level: 5
+sk target_1: 0
+sk target_2: 0
+sk target_3: 0
+sk target_4: 0
+
+sk finished: 0
+
+sk y_level: 190
+    kamēr y_level >= 2 {
+        ja tetramino_index = 3 {
+            target_1: y_level + x_level
+            target_2: y_level + x_level + 1
+            target_3: y_level - 10 + x_level
+            target_4: y_level - 9 + x_level
+            fixture(target_1)
+            fixture(target_2)
+            fixture(target_3)
+            fixture(target_4)
+            fulldim()
+            color(1)
+        }
+        wait(1)
+        zerodim()
+        clear()
+        y_level: y_level - 10
+    }
