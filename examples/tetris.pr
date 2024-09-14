@@ -31,4 +31,5 @@ kamēr y_level >= 11 {
     clear()
     y_level: y_level - 10
 }
+
 }

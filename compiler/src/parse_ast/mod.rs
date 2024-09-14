@@ -29,6 +29,31 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE
             parse_ast(child, compiler, block);
         }
     }
+    if title == "array_def" {
+        let name = node.child(2).get_value().unwrap().to_string();
+        let items = node.child(3).children();
+        for (index, item) in items.into_iter().enumerate() {
+            parse_ast(item, compiler, block);
+            let register = match compiler.stack.pop_back().unwrap() {
+                crate::StackValue::NUM { register } => register,
+                _ => panic!("addition with non-number"),
+            };
+            block.push(OPTCODE::DefineVariable {
+                name: format!("array_{}_{}", name, index),
+                value_reg: register,
+            });
+        }
+    }
+    if title == "array" {
+        let name = node.child(0).get_value().unwrap();
+        let index = node.child(1).get_value().unwrap().parse::<usize>().unwrap();
+        block.push(OPTCODE::GetVariable {
+            name: format!("array_{}_{}", name, index),
+            target_reg: compiler.register_counter,
+        });
+        compiler.stack.push_back(crate::StackValue::NUM { register: compiler.register_counter });
+        compiler.register_counter += 1;
+    }
     match title {
         "func_call" => func_call(compiler, node, block),
         "comp_s" => comp_s(compiler, node, block),
@@ -43,6 +68,8 @@ pub fn parse_ast(node: AstNode, compiler: &mut Compiler, block: &mut Vec<OPTCODE
         "w_loop" => w_loop(compiler, node, block),
         "NUMBER" => number(compiler, node, block),
         "block" => (),
-        _ => panic!("Unrecognized symbol: {}", title)
+        "array_def" => (),
+        "array" => (),
+        _ => panic!("Unrecognized symbol: {}", title),
     }
 }
