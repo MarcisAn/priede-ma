@@ -5,8 +5,10 @@ use crate::{ Compiler, StackValue, OPTCODE };
 use super::parse_ast;
 
 pub fn func_call(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE>) {
-    for arg in node.child(1).children() {
-        parse_ast(arg, compiler, block);
+    if node.children_count() > 1 {
+        for arg in node.child(1).children() {
+            parse_ast(arg, compiler, block);
+        }
     }
     let func_name = node.child(0).get_value().unwrap();
     if func_name == "fixture" {
@@ -44,24 +46,29 @@ pub fn func_call(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE
         });
         compiler.stack.push_back(crate::StackValue::NUM { register: compiler.register_counter });
         compiler.register_counter += 1;
-    }
-    else if func_name == "fulldim" {
+    } else if func_name == "fulldim" {
         block.push(OPTCODE::DimmerFull)
-    }
-    else if func_name == "zerodim" {
+    } else if func_name == "zerodim" {
         block.push(OPTCODE::DimmerZero)
-    }
-    else if func_name == "clear" {
+    } else if func_name == "clear" {
         block.push(OPTCODE::Clear)
-    }
-    else if func_name == "clearall" {
+    } else if func_name == "clearall" {
         block.push(OPTCODE::ClearAll)
-    }
-    else if func_name == "wait" {
-        block.push(OPTCODE::Wait { seconds: node.child(1).child(0).get_value().unwrap().replace(",", ".").parse::<f64>().unwrap() })
-    }
-    else if func_name == "color"{
-        block.push(OPTCODE::ColorPreset { number: node.child(1).child(0).get_value().unwrap().parse::<usize>().unwrap() })
+    } else if func_name == "wait" {
+        block.push(OPTCODE::Wait {
+            seconds: node
+                .child(1)
+                .child(0)
+                .get_value()
+                .unwrap()
+                .replace(",", ".")
+                .parse::<f64>()
+                .unwrap(),
+        })
+    } else if func_name == "color" {
+        block.push(OPTCODE::ColorPreset {
+            number: node.child(1).child(0).get_value().unwrap().parse::<usize>().unwrap(),
+        })
     }
 }
 //(number.replace(",", ".").parse::<f64>().unwrap()).to_string().replace(",", ".")

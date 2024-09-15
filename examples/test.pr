@@ -8,22 +8,19 @@ sk target_4: 0
 
 sk finished: 0
 
-kamēr finished = 0 {
 
 sk y_level: 191
 kamēr y_level >= 11 {
-    ja tetramino_index = 3 {
-        target_1: y_level + x_level
-        target_2: y_level + x_level + 1
-        target_3: y_level - 10 + x_level
-        target_4: y_level - 9 + x_level
-        fixture(target_1)
-        fixture(target_2)
-        fixture(target_3)
-        fixture(target_4)
-        fulldim()
-        color(1)
-    }
+    target_1: y_level + x_level
+    target_2: y_level + x_level + 1
+    target_3: y_level - 10 + x_level
+    target_4: y_level - 9 + x_level
+    fixture(target_1)
+    fixture(target_2)
+    fixture(target_3)
+    fixture(target_4)
+    fulldim()
+    color(1)
     wait(1)
     ja y_level > 11 {
         zerodim()
@@ -31,4 +28,4 @@ kamēr y_level >= 11 {
     clear()
     y_level: y_level - 10
 }
-}
+fixture(99)
