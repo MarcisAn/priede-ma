@@ -63,7 +63,7 @@ pub fn format_macro_line(optcode: OPTCODE, lineid: usize) -> String {
             format!(
                 "[${} == 0]  Macro 1.1.{}",
                 "reg_".to_string() + &register_to_check.to_string(),
-                line_to_jump_to
+                line_to_jump_to + lineid
             ),
         OPTCODE::Jump { line_to_jump_to } =>
             format!(
