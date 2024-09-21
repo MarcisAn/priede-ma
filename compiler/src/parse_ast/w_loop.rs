@@ -9,17 +9,19 @@ pub fn w_loop(compiler: &mut Compiler, node: AstNode, block: &mut Vec<OPTCODE>) 
     parse_ast(node.child(0), compiler, block);
     let conditional = compiler.stack.pop_back().unwrap();
     let starting_length = block.len();
-    parse_ast(node.child(1), compiler, block);
-    let to_jump_to = block.len() - starting_length;
 
+    let mut body: Vec<OPTCODE> = vec![];
+    parse_ast(node.child(1), compiler, &mut body);
     let register_to_check = match conditional {
         crate::StackValue::NUM { register } => register,
         _ => panic!("addition with non-number"),
     };
     block.push(crate::OPTCODE::JumpIfZero {
         register_to_check,
-        line_to_jump_to: to_jump_to + 3,
+        line_to_jump_to: body.len() + 3,
     });
+    block.append(&mut body);
+
     block.push(OPTCODE::Jump { line_to_jump_to: jump_back_target + 1 });
     block.push(crate::OPTCODE::EmptyLine);
 }
